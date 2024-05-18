@@ -1,7 +1,7 @@
 export interface BrailleGraphOptions<X> {
     yLabel?: (y: number) => string;
     xLabel?: (x: X) => string;
-    xIndex?: (x: X, index: number, width: number) => number;
+    xValue?: (x: X) => number;
     width?:  number;
     height?: number;
     xRange?: [min: number, max: number];
@@ -16,10 +16,6 @@ function defaultYLabel(y: number): string {
     return String(y);
 }
 
-function defaultXIndex<X>(x: X, index: number, width: number): number {
-    return index;
-}
-
 export default function unicodeGraph<X>(
     data: ReadonlyArray<readonly [x: X, y: number]>,
     options?: BrailleGraphOptions<X>,
@@ -30,7 +26,7 @@ export default function unicodeGraph<X>(
     const height = options?.height ?? 40;
     const unicodeWidth  = width  * 2;
     const unicodeHeight = height * 2;
-    const xIndex = options?.xIndex ?? defaultXIndex;
+    const xValue = options?.xValue ?? Number;
     const xLabel = options?.xLabel ?? defaultXLabel;
     const yLabel = options?.yLabel ?? defaultYLabel;
 
@@ -40,22 +36,39 @@ export default function unicodeGraph<X>(
             lines.push(line);
         }
     } else {
-        const sparseValues: [xIndex: number, x: X, y: number][] =
-            data.map(([x, y], index) => [xIndex(x, index, width), x, y]);
+        const xValues: number[] = data.map(([x, y]) => xValue(x));
+        const xRange = options?.xRange; // TODO
 
-        // sparseValues.sort((lhs, rhs) => {
-        //     return lhs[0] - rhs[0];
-        // });
+        let xMin: number;
+        let xMax: number;
 
-        const xMinIndex = sparseValues[0][0];
-        const xMaxIndex = sparseValues[sparseValues.length - 1][0];
-        const xIndexLength = xMaxIndex + 1 - xMinIndex;
+        let xMinValue = +Infinity;
+        let xMaxValue = -Infinity;
+
+        for (const x of xValues) {
+            if (x < xMinValue) {
+                xMinValue = x;
+            }
+            if (x > xMaxValue) {
+                xMaxValue = x;
+            }
+        }
+
+        if (xRange) {
+            [xMin, xMax] = xRange;
+        } else {
+            xMin = xMinValue;
+            xMax = xMaxValue;
+        }
 
         const values = new Float64Array(unicodeWidth);
         const counts = new Uint32Array(unicodeWidth);
+        const xSpan = xMax - xMin;
 
-        for (const [xIndex, x, y] of sparseValues) {
-            const unicodeIndex = (unicodeWidth * (xIndex - xMinIndex) / xIndexLength)|0;
+        for (let index = 0; index < data.length; ++ index) {
+            const y = data[index][1];
+            const x = xValues[index];
+            const unicodeIndex = (unicodeWidth * (x - xMin) / xSpan)|0;
             values[unicodeIndex] += y;
             ++ counts[unicodeIndex];
         }
@@ -99,12 +112,12 @@ export default function unicodeGraph<X>(
             canvas.push(new Uint8Array(width));
         }
 
-        console.log({ yMin, yMax, ySpan, yWatermark, intYWatermark, x0: data[0][0], y0: data[0][1], int0: intValues[0] });
-        // console.log(intValues);
+        // console.log({ yMin, yMax, ySpan, yWatermark, intYWatermark, x0: data[0][0], y0: data[0][1], int0: intValues[0], xMin, xMax, xMinValue, xMaxValue, xSpan });
+
         outer: for (let x = 0; x < intValues.length; ++ x) {
             const value = intValues[x];
             const full = (x & 1) ? 0b0011 : 0b1100;
-            const xIndex = x >> 1;
+            const xIndex = (x >> 1);
             if (xIndex < 0) {
                 continue;
             }
@@ -112,9 +125,6 @@ export default function unicodeGraph<X>(
                 break;
             }
             if (value >= 0) {
-                if (x === 0) {
-                    console.log("value >= 0");
-                }
                 let y = 0;
                 for (; y + 2 <= value; y += 2) {
                     const yIndex = (intYWatermark + y) >> 1;
@@ -130,9 +140,6 @@ export default function unicodeGraph<X>(
                 if (yIndex >= height) continue outer;
                 canvas[yIndex][xIndex] |= mask;
             } else {
-                if (x === 0) {
-                    console.log("value < 0");
-                }
                 let y = 0;
                 for (; y - 2 >= value; y -= 2) {
                     const yIndex = (intYWatermark + y - 2) >> 1;
@@ -207,14 +214,15 @@ async function main() {
     while (running) {
         const now = Date.now();
         for (let index = 0; index < values.length; ++ index) {
-            const x = ((now / 10_000 * TAU) + (TAU * (index / values.length))) % TAU;
-            values[index] = [x, Math.sin(x)];
+            const x = ((now / 10_000 * TAU) + (TAU * (index / values.length)));
+            values[index] = [x, Math.sin(x % TAU)];
         }
         process.stdout.write('\x1B[1;1H\x1B[2J');
-        const lines = unicodeGraph(values, { xRange: [ values[0][0] - 2, values[values.length - 1][0] + 2 ], yRange: [-1, 1] });
-        console.log('-'.repeat(80));
-        console.log(lines.join('\n'));
-        console.log('-'.repeat(80));
+        const lines = unicodeGraph(values, { yRange: [-1, 1] });
+        // const lines = unicodeGraph(values, { xRange: [ values[0][0] + Math.PI*0.5, values[values.length - 1][0] - Math.PI*0.5 ], yRange: [-.5, .5] });
+        console.log('┌' + '─'.repeat(80) + '┐');
+        console.log(lines.map(line => `│${line}│`).join('\n'));
+        console.log('└' + '─'.repeat(80) + '┘');
 
         if (!running) {
             break;
