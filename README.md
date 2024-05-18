@@ -1,5 +1,5 @@
-Unicode Graph
-=============
+Unicode Plot
+============
 
 A very simple function to plot data as Unicode for console output.
 
@@ -12,7 +12,7 @@ for (let index = 0; index < values.length; ++ index) {
     const x = TAU * (index / values.length);
     values[index] = [x, Math.sin(x % TAU)];
 }
-const lines = unicodeGraph(values, {
+const lines = unicodePlot(values, {
     yRange: [-1.5, 1.5],
     xLabel: x => x.toFixed(3),
     yLabel: y => y.toFixed(3),

@@ -1,4 +1,4 @@
-export interface BrailleGraphOptions {
+export interface PlotOptions {
     yLabel?: boolean|((y: number) => string);
     xLabel?: boolean|((x: number) => string);
     width?:  number;
@@ -15,9 +15,9 @@ function defaultYLabel(y: number): string {
     return String(y);
 }
 
-export default function unicodeGraph(
+export default function unicodePlot(
     data: ReadonlyArray<readonly [x: number, y: number]>,
-    options?: BrailleGraphOptions,
+    options?: PlotOptions,
 ): string[] {
     const lines: string[] = [];
 
