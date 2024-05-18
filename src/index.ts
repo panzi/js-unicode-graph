@@ -1,14 +1,13 @@
-export interface BrailleGraphOptions<X> {
+export interface BrailleGraphOptions {
     yLabel?: (y: number) => string;
-    xLabel?: (x: X) => string;
-    xValue?: (x: X) => number;
+    xLabel?: (x: number) => string;
     width?:  number;
     height?: number;
     xRange?: [min: number, max: number];
     yRange?: [min: number, max: number];
 }
 
-function defaultXLabel<X>(x: X): string {
+function defaultXLabel(x: number): string {
     return String(x);
 }
 
@@ -16,9 +15,9 @@ function defaultYLabel(y: number): string {
     return String(y);
 }
 
-export default function unicodeGraph<X>(
-    data: ReadonlyArray<readonly [x: X, y: number]>,
-    options?: BrailleGraphOptions<X>,
+export default function unicodeGraph(
+    data: ReadonlyArray<readonly [x: number, y: number]>,
+    options?: BrailleGraphOptions,
 ): string[] {
     const lines: string[] = [];
 
@@ -26,7 +25,6 @@ export default function unicodeGraph<X>(
     const height = options?.height ?? 40;
     const unicodeWidth  = width  * 2;
     const unicodeHeight = height * 2;
-    const xValue = options?.xValue ?? Number;
     const xLabel = options?.xLabel ?? defaultXLabel;
     const yLabel = options?.yLabel ?? defaultYLabel;
 
@@ -36,7 +34,6 @@ export default function unicodeGraph<X>(
             lines.push(line);
         }
     } else {
-        const xValues: number[] = data.map(([x, y]) => xValue(x));
         const xRange = options?.xRange; // TODO
 
         let xMin: number;
@@ -45,7 +42,7 @@ export default function unicodeGraph<X>(
         let xMinValue = +Infinity;
         let xMaxValue = -Infinity;
 
-        for (const x of xValues) {
+        for (const [x] of data) {
             if (x < xMinValue) {
                 xMinValue = x;
             }
@@ -65,9 +62,7 @@ export default function unicodeGraph<X>(
         const counts = new Uint32Array(unicodeWidth);
         const xSpan = xMax - xMin;
 
-        for (let index = 0; index < data.length; ++ index) {
-            const y = data[index][1];
-            const x = xValues[index];
+        for (const [x, y] of data) {
             const unicodeIndex = (unicodeWidth * (x - xMin) / xSpan)|0;
             values[unicodeIndex] += y;
             ++ counts[unicodeIndex];
@@ -191,50 +186,27 @@ const MASK_MAP = [
     '█', // 1111
 ];
 
-async function main() {
-    const values: [number, number][] = new Array(80 * 4);
-    const TAU = 2 * Math.PI;
-
-    process.stdout.write('\x1B[?25l');
-
-    let timer: NodeJS.Timeout|null = null;
-    let running = true;
-    const shutdown = () => {
-        running = false;
-        if (timer !== null) {
-            clearTimeout(timer);
-            timer = null;
+export function makeBox(text: string|string[]): string[] {
+    const lines = Array.isArray(text) ? text : text.split('\n');
+    let maxLen = 0;
+    for (const line of lines) {
+        const len = line.length;
+        if (len > maxLen) {
+            maxLen = len;
         }
-    };
-    process.on('SIGINT', shutdown);
-    process.on('SIGTERM', shutdown);
-    process.on('exit', () => {
-        process.stdout.write('\x1B[?25h');
-    });
-    while (running) {
-        const now = Date.now();
-        for (let index = 0; index < values.length; ++ index) {
-            const x = ((now / 10_000 * TAU) + (TAU * (index / values.length)));
-            values[index] = [x, Math.sin(x % TAU)];
-        }
-        process.stdout.write('\x1B[1;1H\x1B[2J');
-        const lines = unicodeGraph(values, { yRange: [-1, 1] });
-        // const lines = unicodeGraph(values, { xRange: [ values[0][0] + Math.PI*0.5, values[values.length - 1][0] - Math.PI*0.5 ], yRange: [-.5, .5] });
-        console.log('┌' + '─'.repeat(80) + '┐');
-        console.log(lines.map(line => `│${line}│`).join('\n'));
-        console.log('└' + '─'.repeat(80) + '┘');
-
-        if (!running) {
-            break;
-        }
-
-        await new Promise<void>(resolve => {
-            timer = setTimeout(() => {
-                timer = null;
-                resolve();
-            }, 1000/30);
-        });
     }
+
+    const outline = '─'.repeat(maxLen);
+    const out: string[] = [];
+    out.push(`┌${outline}┐`);
+    for (const line of lines) {
+        out.push(`│${line.padEnd(maxLen)}│`);
+    }
+    out.push(`└${outline}┘`);
+
+    return out;
 }
 
-main();
+export function printBox(text: string|string[]): void {
+    console.log(makeBox(text).join('\n'));
+}

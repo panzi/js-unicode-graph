@@ -2,10 +2,9 @@
   "name": "unicode-graph",
   "version": "0.1.0",
   "type": "module",
-  "main": "dist/unicodeGraph.js",
   "scripts": {
     "build": "tsc",
-    "start": "node ./dist/unicodeGraph.js"
+    "example": "node ./dist/example.js"
   },
   "dependencies": {
     "typescript": "^5.4.5"
