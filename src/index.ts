@@ -114,10 +114,17 @@ export default function unicodeGraph(
             if (xIndex < 0) {
                 continue;
             }
+
             if (xIndex >= width) {
                 break;
             }
-            if (value >= 0) {
+
+            if (value === 0) {
+                // const mask = (x & 1) ? 0b0001 : 0b0100;
+                // const yIndex = intYZero >> 1;
+                // if (yIndex >= height) continue outer;
+                // canvas[yIndex][xIndex] |= mask;
+            } else if (value > 0) {
                 let y = 0;
                 for (; y + 2 <= value; y += 2) {
                     const yIndex = (intYZero + y) >> 1;
@@ -162,18 +169,13 @@ export default function unicodeGraph(
         }
 
         if (yLabel) {
-            const getYIndex = (y: number) =>
-                lines.length - ((intYZero + (unicodeHeight * y / ySpan)|0) >> 1);
-
             const indices = new Set<number>();
             const addYLabel = (y: number) => {
-                let index = getYIndex(y) - 1;
+                let index = lines.length - ((intYZero + (unicodeHeight * y / ySpan)|0) >> 1) - 1;
                 if (index < 0) {
                     index = 0;
-                } else {
-                    if (index >= lines.length) {
-                        index = lines.length - 1;
-                    }
+                } else if (index >= lines.length) {
+                    index = lines.length - 1;
                 }
 
                 if (!indices.has(index)) {
@@ -188,6 +190,60 @@ export default function unicodeGraph(
 
             addYLabel(Math.min(yMaxValue, yMax));
             addYLabel(Math.max(yMinValue, yMin));
+        }
+
+        if (xLabel) {
+            const extraLines: { len: number, line: string[] }[] = [];
+
+            const addXLabel = (x: number) => {
+                const index = (width * (x - xMin) / xSpan)|0;
+                const label = xLabel(x);
+                for (const item of extraLines) {
+                    if (item.len < index && item.len + 1 + label.length <= width) {
+                        const padding = ' '.repeat(
+                            index + label.length <= width ?
+                                index - item.len :
+                                width - item.len - label.length
+                            );
+                        item.line.push(padding);
+                        item.line.push(label);
+                        item.len = index + item.len;
+                        return;
+                    }
+                }
+
+                const line: string[] = [];
+                let len: number;
+
+                if (index + label.length >= width) {
+                    len = label.length;
+                    if (label.length < width) {
+                        const padding = ' '.repeat(width - label.length);
+                        line.push(padding);
+                        len += padding.length;
+                    }
+                    line.push(label);
+                } else {
+                    const padding = ' '.repeat(index);
+                    line.push(padding, label);
+                    len = index + label.length;
+                }
+                extraLines.push({ len, line });
+            };
+
+            const start = Math.max(xMinValue, xMin);
+            const end   = Math.min(xMaxValue, xMax);
+
+            if (start < 0 && 0 < end) {
+                addXLabel(0);
+            }
+
+            addXLabel(start);
+            addXLabel(end);
+
+            for (const line of extraLines) {
+                lines.push(line.line.join(''));
+            }
         }
     }
 
