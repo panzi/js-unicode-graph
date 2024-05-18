@@ -1,15 +1,16 @@
 {
   "name": "unicode-graph",
-  "version": "0.1.0",
+  "description": "A very simple function to plot data as Unicode for console output.",
+  "version": "1.0.0",
   "type": "module",
+  "main": "dist/index.js",
+  "license": "MIT",
   "scripts": {
     "build": "tsc",
     "example": "node ./dist/example.js"
   },
-  "dependencies": {
-    "typescript": "^5.4.5"
-  },
   "devDependencies": {
+    "typescript": "^5.4.5",
     "@types/node": "^20.12.12"
   }
 }

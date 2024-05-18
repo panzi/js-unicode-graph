@@ -6,21 +6,7 @@ async function main() {
 
     process.stdout.write('\x1B[?25l');
 
-    let timer: NodeJS.Timeout|null = null;
-    let running = true;
-    const shutdown = () => {
-        running = false;
-        if (timer !== null) {
-            clearTimeout(timer);
-            timer = null;
-        }
-    };
-    process.on('SIGINT', shutdown);
-    process.on('SIGTERM', shutdown);
-    process.on('exit', () => {
-        process.stdout.write('\x1B[?25h');
-    });
-    while (running) {
+    let timer: NodeJS.Timeout|null = setInterval(() => {
         const now = Date.now();
         for (let index = 0; index < values.length; ++ index) {
             const x = ((now / 5_000 * TAU) + (TAU * (index / values.length)));
@@ -35,18 +21,20 @@ async function main() {
         // const lines = unicodeGraph(values, { xLabel: true, yLabel: true });
         // const lines = unicodeGraph(values, { xRange: [ values[0][0] + Math.PI*0.5, values[values.length - 1][0] - Math.PI*0.5 ], yRange: [-.5, .5] });
         printBox(lines);
+    }, 1000/30);
 
-        if (!running) {
-            break;
+    const shutdown = () => {
+        if (timer !== null) {
+            clearInterval(timer);
+            timer = null;
         }
+    };
 
-        await new Promise<void>(resolve => {
-            timer = setTimeout(() => {
-                timer = null;
-                resolve();
-            }, 1000/30);
-        });
-    }
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+    process.on('exit', () => {
+        process.stdout.write('\x1B[?25h');
+    });
 }
 
 main();
