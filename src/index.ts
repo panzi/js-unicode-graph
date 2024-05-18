@@ -1,6 +1,6 @@
 export interface BrailleGraphOptions {
-    yLabel?: (y: number) => string;
-    xLabel?: (x: number) => string;
+    yLabel?: boolean|((y: number) => string);
+    xLabel?: boolean|((x: number) => string);
     width?:  number;
     height?: number;
     xRange?: [min: number, max: number];
@@ -25,8 +25,8 @@ export default function unicodeGraph(
     const height = options?.height ?? 40;
     const unicodeWidth  = width  * 2;
     const unicodeHeight = height * 2;
-    const xLabel = options?.xLabel ?? defaultXLabel;
-    const yLabel = options?.yLabel ?? defaultYLabel;
+    const xLabel = options?.xLabel === true ? defaultXLabel : options?.xLabel || null;
+    const yLabel = options?.yLabel === true ? defaultYLabel : options?.yLabel || null;
 
     if (data.length === 0) {
         const line = ' '.repeat(width);
@@ -71,31 +71,29 @@ export default function unicodeGraph(
         const yRange = options?.yRange;
         let yMin: number;
         let yMax: number;
+        let yMinValue = +Infinity;
+        let yMaxValue = -Infinity;
 
-        if (yRange) {
-            [yMin, yMax] = yRange;
-
-            for (let index = 0; index < values.length; ++ index) {
-                values[index] /= counts[index];
+        for (let index = 0; index < values.length; ++ index) {
+            const y = (values[index] /= counts[index]);
+            if (y < yMinValue) {
+                yMinValue = y;
             }
-        } else {
-            yMin = +Infinity;
-            yMax = -Infinity;
-
-            for (let index = 0; index < values.length; ++ index) {
-                const y = (values[index] /= counts[index]);
-                if (y < yMin) {
-                    yMin = y;
-                }
-                if (y > yMax) {
-                    yMax = y;
-                }
+            if (y > yMaxValue) {
+                yMaxValue = y;
             }
         }
 
-        const yWatermark = yMin < 0 ? -yMin : 0;
+        if (yRange) {
+            [yMin, yMax] = yRange;
+        } else {
+            yMin = yMinValue;
+            yMax = yMaxValue;
+        }
+
+        const yZero = yMin < 0 ? -yMin : 0;
         const ySpan = yMin < 0 ? Math.max(0, yMax) - yMin : yMax;
-        const intYWatermark = (unicodeHeight * yWatermark / ySpan)|0;
+        const intYZero = (unicodeHeight * yZero / ySpan)|0;
         const intValues = new Int32Array(unicodeWidth);
 
         for (let index = 0; index < values.length; ++ index) {
@@ -122,7 +120,7 @@ export default function unicodeGraph(
             if (value >= 0) {
                 let y = 0;
                 for (; y + 2 <= value; y += 2) {
-                    const yIndex = (intYWatermark + y) >> 1;
+                    const yIndex = (intYZero + y) >> 1;
                     if (yIndex >= height) continue outer;
                     canvas[yIndex][xIndex] |= full;
                 }
@@ -131,13 +129,13 @@ export default function unicodeGraph(
                 if ((x & 1) === 0) {
                     mask = mask << 2;
                 }
-                const yIndex = (intYWatermark + y) >> 1;
+                const yIndex = (intYZero + y) >> 1;
                 if (yIndex >= height) continue outer;
                 canvas[yIndex][xIndex] |= mask;
             } else {
                 let y = 0;
                 for (; y - 2 >= value; y -= 2) {
-                    const yIndex = (intYWatermark + y - 2) >> 1;
+                    const yIndex = (intYZero + y - 2) >> 1;
                     if (yIndex >= 0 && yIndex < height) {
                         canvas[yIndex][xIndex] |= full;
                     }
@@ -147,7 +145,7 @@ export default function unicodeGraph(
                 if ((x & 1) === 0) {
                     mask = mask << 2;
                 }
-                const yIndex = (intYWatermark + y - 2) >> 1;
+                const yIndex = (intYZero + y - 2) >> 1;
                 if (yIndex < 0 || yIndex >= height) continue outer;
                 canvas[yIndex][xIndex] |= mask;
             }
@@ -161,6 +159,35 @@ export default function unicodeGraph(
                 line.push(map[mask]);
             }
             lines.push(line.join(''));
+        }
+
+        if (yLabel) {
+            const getYIndex = (y: number) =>
+                lines.length - ((intYZero + (unicodeHeight * y / ySpan)|0) >> 1);
+
+            const indices = new Set<number>();
+            const addYLabel = (y: number) => {
+                let index = getYIndex(y) - 1;
+                if (index < 0) {
+                    index = 0;
+                } else {
+                    if (index >= lines.length) {
+                        index = lines.length - 1;
+                    }
+                }
+
+                if (!indices.has(index)) {
+                    lines[index] = `${lines[index]} ${yLabel(y)}`;
+                    indices.add(index);
+                }
+            };
+
+            if (yMin <= 0 && 0 <= yMax) {
+                addYLabel(0);
+            }
+
+            addYLabel(Math.min(yMaxValue, yMax));
+            addYLabel(Math.max(yMinValue, yMin));
         }
     }
 
@@ -190,7 +217,7 @@ export function makeBox(text: string|string[]): string[] {
     const lines = Array.isArray(text) ? text : text.split('\n');
     let maxLen = 0;
     for (const line of lines) {
-        const len = line.length;
+        const len = (line ?? '').length;
         if (len > maxLen) {
             maxLen = len;
         }
@@ -200,7 +227,7 @@ export function makeBox(text: string|string[]): string[] {
     const out: string[] = [];
     out.push(`┌${outline}┐`);
     for (const line of lines) {
-        out.push(`│${line.padEnd(maxLen)}│`);
+        out.push(`│${(line ?? '').padEnd(maxLen)}│`);
     }
     out.push(`└${outline}┘`);
 

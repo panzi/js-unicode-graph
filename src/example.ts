@@ -23,11 +23,12 @@ async function main() {
     while (running) {
         const now = Date.now();
         for (let index = 0; index < values.length; ++ index) {
-            const x = ((now / 10_000 * TAU) + (TAU * (index / values.length)));
+            const x = ((now / 5_000 * TAU) + (TAU * (index / values.length)));
             values[index] = [x, Math.sin(x % TAU)];
         }
         process.stdout.write('\x1B[1;1H\x1B[2J');
-        const lines = unicodeGraph(values, { yRange: [-1, 1] });
+        const lines = unicodeGraph(values, { yRange: [-1.5, 1.5], xLabel: x => x.toFixed(3), yLabel: y => y.toFixed(3) });
+        // const lines = unicodeGraph(values, { xLabel: true, yLabel: true });
         // const lines = unicodeGraph(values, { xRange: [ values[0][0] + Math.PI*0.5, values[values.length - 1][0] - Math.PI*0.5 ], yRange: [-.5, .5] });
         printBox(lines);
 
