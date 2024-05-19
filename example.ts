@@ -8,7 +8,7 @@ async function main() {
 
     let timer: NodeJS.Timeout|null = setInterval(() => {
         const now = Date.now();
-        const values: [number, number][] = new Array(process.stdout.columns * 3);
+        const values: [number, number][] = new Array((process.stdout.columns ?? 80) * 3);
         for (let index = 0; index < values.length; ++ index) {
             const x = ((now / 5_000 * TAU) + (TAU * (index / values.length)));
             values[index] = [x, Math.sin(x % TAU)];
@@ -18,8 +18,8 @@ async function main() {
             yRange: [-1.5, 1.5],
             xLabel: x => x.toFixed(3),
             yLabel: y => y.toFixed(3).padStart(6),
-            width: process.stdout.columns - 9,
-            height: process.stdout.rows - 5,
+            width:  (process.stdout.columns ?? 80) - 9,
+            height: (process.stdout.rows    ?? 40) - 5,
         });
         const box = makeBox(lines);
         console.log(box.join('\n'))
