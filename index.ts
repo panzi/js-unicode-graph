@@ -118,7 +118,12 @@ export default function unicodePlot(
                 let y = 0;
                 for (; y + 2 <= value; y += 2) {
                     const yIndex = (intYZero + y) >> 1;
-                    if (yIndex >= height) continue outer;
+                    if (yIndex >= height) {
+                        if (yIndex > 0) {
+                            canvas[yIndex - 1][xIndex] = 0b11111;
+                        }
+                        continue outer;
+                    }
                     canvas[yIndex][xIndex] |= full;
                 }
                 const bits = value % 2;
@@ -127,7 +132,12 @@ export default function unicodePlot(
                     mask = mask << 2;
                 }
                 const yIndex = (intYZero + y) >> 1;
-                if (yIndex >= height) continue outer;
+                if (yIndex >= height) {
+                    if (yIndex > 0) {
+                        canvas[yIndex - 1][xIndex] = 0b11111;
+                    }
+                    continue outer;
+                }
                 canvas[yIndex][xIndex] |= mask;
             } else {
                 let y = 0;
@@ -135,6 +145,8 @@ export default function unicodePlot(
                     const yIndex = (intYZero + y - 2) >> 1;
                     if (yIndex >= 0 && yIndex < height) {
                         canvas[yIndex][xIndex] |= full;
+                    } else if (yIndex >= -1 && yIndex + 1 < canvas.length) {
+                        canvas[yIndex + 1][xIndex] = 0b11111;
                     }
                 }
                 const bits = -value % 2;
@@ -143,7 +155,12 @@ export default function unicodePlot(
                     mask = mask << 2;
                 }
                 const yIndex = (intYZero + y - 2) >> 1;
-                if (yIndex < 0 || yIndex >= height) continue outer;
+                if (yIndex < 0 || yIndex >= height) {
+                    if (yIndex >= -1 && yIndex + 1 < canvas.length) {
+                        canvas[yIndex + 1][xIndex] = 0b11111;
+                    }
+                    continue outer;
+                }
                 canvas[yIndex][xIndex] |= mask;
             }
         }
@@ -259,27 +276,4 @@ const MASK_MAP = [
     '█', // 1111
 ];
 
-export function makeBox(text: string|string[]): string[] {
-    const lines = Array.isArray(text) ? text : text.split('\n');
-    let maxLen = 0;
-    for (const line of lines) {
-        const len = (line ?? '').length;
-        if (len > maxLen) {
-            maxLen = len;
-        }
-    }
-
-    const outline = '─'.repeat(maxLen);
-    const out: string[] = [];
-    out.push(`┌${outline}┐`);
-    for (const line of lines) {
-        out.push(`│${(line ?? '').padEnd(maxLen)}│`);
-    }
-    out.push(`└${outline}┘`);
-
-    return out;
-}
-
-export function printBox(text: string|string[]): void {
-    console.log(makeBox(text).join('\n'));
-}
+MASK_MAP[0b11111] = '▓';

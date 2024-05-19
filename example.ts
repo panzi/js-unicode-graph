@@ -1,4 +1,25 @@
-import unicodePlot, { makeBox } from "./index.js";
+import unicodePlot from "./index.js";
+
+function makeBox(text: string|string[]): string[] {
+    const lines = Array.isArray(text) ? text : text.split('\n');
+    let maxLen = 0;
+    for (const line of lines) {
+        const len = (line ?? '').length;
+        if (len > maxLen) {
+            maxLen = len;
+        }
+    }
+
+    const outline = '─'.repeat(maxLen);
+    const out: string[] = [];
+    out.push(`┌${outline}┐`);
+    for (const line of lines) {
+        out.push(`│${(line ?? '').padEnd(maxLen)}│`);
+    }
+    out.push(`└${outline}┘`);
+
+    return out;
+}
 
 async function main() {
     const TAU = 2 * Math.PI;
