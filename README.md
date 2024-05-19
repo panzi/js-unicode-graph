@@ -29,7 +29,7 @@ const TAU = 2 * Math.PI;
 const values = new Array(320);
 for (let index = 0; index < values.length; ++ index) {
     const x = TAU * (index / values.length);
-    values[index] = [x, Math.sin(x % TAU)];
+    values[index] = [x, Math.sin(x)];
 }
 const lines = unicodePlot(values, {
     yRange: [-1.5, 1.5],
