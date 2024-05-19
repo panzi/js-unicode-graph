@@ -1,8 +1,9 @@
-import unicodePlot, { printBox } from "./index.js";
+import unicodePlot, { makeBox } from "./index.js";
 
 async function main() {
     const values: [number, number][] = new Array(80 * 4);
     const TAU = 2 * Math.PI;
+    const message = 'Press Control+C to exit.';
 
     process.stdout.write('\x1B[?25l');
 
@@ -18,7 +19,9 @@ async function main() {
             xLabel: x => x.toFixed(3),
             yLabel: y => y.toFixed(3),
         });
-        printBox(lines);
+        const box = makeBox(lines);
+        console.log(box.join('\n'))
+        console.log(message.padStart(message.length + ((box[0].length - message.length) >> 1)));
     }, 1000/30);
 
     const shutdown = () => {
