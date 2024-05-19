@@ -20,12 +20,12 @@ export default function unicodePlot(
     const xLabel = options?.xLabel === true ? String : options?.xLabel || null;
     const yLabel = options?.yLabel === true ? String : options?.yLabel || null;
 
-    if (data.length === 0) {
+    if (data.length === 0 || width <= 0) {
         const line = ' '.repeat(width);
         for (let y = 0; y < height; ++ y) {
             lines.push(line);
         }
-    } else {
+    } else if (height > 0) {
         const xRange = options?.xRange;
 
         let xMin: number;
