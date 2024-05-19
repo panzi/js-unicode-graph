@@ -26,7 +26,7 @@ export default function unicodePlot(
             lines.push(line);
         }
     } else {
-        const xRange = options?.xRange; // TODO
+        const xRange = options?.xRange;
 
         let xMin: number;
         let xMax: number;
@@ -96,8 +96,6 @@ export default function unicodePlot(
         for (let y = 0; y < height; ++ y) {
             canvas.push(new Uint8Array(width));
         }
-
-        // console.log({ yMin, yMax, ySpan, yWatermark, intYWatermark, x0: data[0][0], y0: data[0][1], int0: intValues[0], xMin, xMax, xMinValue, xMaxValue, xSpan });
 
         outer: for (let x = 0; x < intValues.length; ++ x) {
             const value = intValues[x];
