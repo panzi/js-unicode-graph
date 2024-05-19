@@ -7,14 +7,6 @@ export interface PlotOptions {
     yRange?: [min: number, max: number];
 }
 
-function defaultXLabel(x: number): string {
-    return String(x);
-}
-
-function defaultYLabel(y: number): string {
-    return String(y);
-}
-
 export default function unicodePlot(
     data: ReadonlyArray<readonly [x: number, y: number]>,
     options?: PlotOptions,
@@ -25,8 +17,8 @@ export default function unicodePlot(
     const height = options?.height ?? 40;
     const unicodeWidth  = width  * 2;
     const unicodeHeight = height * 2;
-    const xLabel = options?.xLabel === true ? defaultXLabel : options?.xLabel || null;
-    const yLabel = options?.yLabel === true ? defaultYLabel : options?.yLabel || null;
+    const xLabel = options?.xLabel === true ? String : options?.xLabel || null;
+    const yLabel = options?.yLabel === true ? String : options?.yLabel || null;
 
     if (data.length === 0) {
         const line = ' '.repeat(width);
