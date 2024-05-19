@@ -17,7 +17,7 @@ async function main() {
         const lines = unicodePlot(values, {
             yRange: [-1.5, 1.5],
             xLabel: x => x.toFixed(3),
-            yLabel: y => y.toFixed(3),
+            yLabel: y => y.toFixed(3).padStart(6),
             width: process.stdout.columns - 9,
             height: process.stdout.rows - 5,
         });
