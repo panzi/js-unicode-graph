@@ -106,7 +106,7 @@ export default function unicodePlot(
             if (yMin < 0) {
                 // HACK: cut off compensation
                 // TODO: find out why I need it
-                yMin -= (yMax - yMin) * 0.00005;
+                yMin -= (yMax - yMin) * 0.025;
             }
         }
 
@@ -116,7 +116,8 @@ export default function unicodePlot(
         const intValues = new Int32Array(unicodeWidth);
 
         for (let index = 0; index < values.length; ++ index) {
-            intValues[index] = (unicodeHeight * values[index] / ySpan)|0;
+            const value = unicodeHeight * values[index] / ySpan;
+            intValues[index] = value < 0 ? Math.floor(value) : Math.ceil(value);
         }
 
         const canvas: Uint8Array[] = [];
