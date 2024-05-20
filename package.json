@@ -1,5 +1,5 @@
 {
-  "name": "unicode-plot",
+  "name": "@panzi/unicode-plot",
   "description": "A very simple function to plot data as Unicode for console output.",
   "version": "1.0.0",
   "type": "module",
