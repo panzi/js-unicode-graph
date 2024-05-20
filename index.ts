@@ -5,6 +5,9 @@ export interface PlotOptions {
     height?: number;
     xRange?: [min: number, max: number];
     yRange?: [min: number, max: number];
+
+    /** default: 'average' */
+    aggregate?: 'average'|'sum';
 }
 
 export default function unicodePlot(
@@ -26,6 +29,7 @@ export default function unicodePlot(
             lines.push(line);
         }
     } else if (height > 0) {
+        const aggregate = options?.aggregate ?? 'average';
         const xRange = options?.xRange;
 
         let xMin: number;
@@ -51,14 +55,7 @@ export default function unicodePlot(
         }
 
         const values = new Float64Array(unicodeWidth);
-        const counts = new Uint32Array(unicodeWidth);
         const xSpan = xMax - xMin;
-
-        for (const [x, y] of data) {
-            const unicodeIndex = (unicodeWidth * (x - xMin) / xSpan)|0;
-            values[unicodeIndex] += y;
-            ++ counts[unicodeIndex];
-        }
 
         const yRange = options?.yRange;
         let yMin: number;
@@ -66,13 +63,37 @@ export default function unicodePlot(
         let yMinValue = +Infinity;
         let yMaxValue = -Infinity;
 
-        for (let index = 0; index < values.length; ++ index) {
-            const y = (values[index] /= counts[index]);
-            if (y < yMinValue) {
-                yMinValue = y;
+        if (aggregate === 'sum') {
+            for (const [x, y] of data) {
+                const unicodeIndex = (unicodeWidth * (x - xMin) / xSpan)|0;
+                values[unicodeIndex] += y;
             }
-            if (y > yMaxValue) {
-                yMaxValue = y;
+
+            for (let index = 0; index < values.length; ++ index) {
+                const y = values[index];
+                if (y < yMinValue) {
+                    yMinValue = y;
+                }
+                if (y > yMaxValue) {
+                    yMaxValue = y;
+                }
+            }
+        } else {
+            const counts = new Uint32Array(unicodeWidth);
+            for (const [x, y] of data) {
+                const unicodeIndex = (unicodeWidth * (x - xMin) / xSpan)|0;
+                values[unicodeIndex] += y;
+                ++ counts[unicodeIndex];
+            }
+
+            for (let index = 0; index < values.length; ++ index) {
+                const y = (values[index] /= counts[index]);
+                if (y < yMinValue) {
+                    yMinValue = y;
+                }
+                if (y > yMaxValue) {
+                    yMaxValue = y;
+                }
             }
         }
 
@@ -81,6 +102,12 @@ export default function unicodePlot(
         } else {
             yMin = yMinValue;
             yMax = yMaxValue;
+
+            if (yMin < 0) {
+                // HACK: cut off compensation
+                // TODO: find out why I need it
+                yMin -= (yMax - yMin) * 0.00005;
+            }
         }
 
         const yZero = yMin < 0 ? -yMin : 0;
@@ -128,17 +155,19 @@ export default function unicodePlot(
                 }
                 const bits = value % 2;
                 let mask = 0b11 >> (2 - bits);
-                if ((x & 1) === 0) {
-                    mask = mask << 2;
-                }
-                const yIndex = (intYZero + y) >> 1;
-                if (yIndex >= height) {
-                    if (yIndex > 0) {
-                        canvas[yIndex - 1][xIndex] = 0b11111;
+                if (mask) {
+                    if ((x & 1) === 0) {
+                        mask = mask << 2;
                     }
-                    continue outer;
+                    const yIndex = (intYZero + y) >> 1;
+                    if (yIndex >= height) {
+                        if (yIndex > 0) {
+                            canvas[yIndex - 1][xIndex] = 0b11111;
+                        }
+                        continue outer;
+                    }
+                    canvas[yIndex][xIndex] |= mask;
                 }
-                canvas[yIndex][xIndex] |= mask;
             } else {
                 let y = 0;
                 for (; y - 2 >= value; y -= 2) {
@@ -151,17 +180,19 @@ export default function unicodePlot(
                 }
                 const bits = -value % 2;
                 let mask = (0b11 << (2 - bits)) & 0b11;
-                if ((x & 1) === 0) {
-                    mask = mask << 2;
-                }
-                const yIndex = (intYZero + y - 2) >> 1;
-                if (yIndex < 0 || yIndex >= height) {
-                    if (yIndex >= -1 && yIndex + 1 < canvas.length) {
-                        canvas[yIndex + 1][xIndex] = 0b11111;
+                if (mask) {
+                    if ((x & 1) === 0) {
+                        mask = mask << 2;
                     }
-                    continue outer;
+                    const yIndex = (intYZero + y - 2) >> 1;
+                    if (yIndex < 0 || yIndex >= height) {
+                        if (yIndex >= -1 && yIndex + 1 < canvas.length) {
+                            canvas[yIndex + 1][xIndex] = 0b11111;
+                        }
+                        continue outer;
+                    }
+                    canvas[yIndex][xIndex] |= mask;
                 }
-                canvas[yIndex][xIndex] |= mask;
             }
         }
 
