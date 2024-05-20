@@ -21,7 +21,7 @@ function makeBox(text: string|string[]): string[] {
     return out;
 }
 
-async function main() {
+function main() {
     const TAU = 2 * Math.PI;
     const message = 'Press Control+C to exit.';
 
