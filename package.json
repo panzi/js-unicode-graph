@@ -7,17 +7,19 @@
   "license": "MIT",
   "author": "Mathias Panzenböck",
   "keywords": [
-    "plot", "terminal", "console", "unicode"
+    "plot",
+    "terminal",
+    "console",
+    "unicode"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/panzi/js-unicode-plot"
+    "url": "git+https://github.com/panzi/js-unicode-plot.git"
   },
   "bugs": {
     "url": "https://github.com/panzi/js-unicode-plot/issues"
   },
   "homepage": "https://github.com/panzi/js-unicode-plot#readme",
-
   "scripts": {
     "build": "tsc",
     "example": "node ./dist/example.js"
