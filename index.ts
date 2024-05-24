@@ -133,9 +133,8 @@ export default function unicodePlot(
         }
 
         if (style === 'filled') {
-            outer: for (let x = 0; x < intValues.length; ++ x) {
+            for (let x = 0; x < intValues.length; ++ x) {
                 const value = intValues[x];
-                const full = (x & 1) ? 0b0011 : 0b1100;
                 const xIndex = (x >> 1);
                 if (xIndex < 0) {
                     continue;
@@ -145,69 +144,39 @@ export default function unicodePlot(
                     break;
                 }
 
+                const xShift = 2 - (x & 1) * 2;
                 if (value === 0) {
-                    // const mask = (x & 1) ? 0b0001 : 0b0100;
-                    // const yIndex = intYZero >> 1;
-                    // if (yIndex >= height) continue outer;
-                    // canvas[yIndex][xIndex] |= mask;
+                    // pass
                 } else if (value > 0) {
-                    let y = 0;
-                    for (; y + 2 <= value; y += 2) {
-                        const yIndex = (intYZero + y) >> 1;
-                        if (yIndex >= height) {
-                            if (yIndex > 0) {
-                                canvas[yIndex - 1][xIndex] = 0b11111;
-                            }
-                            continue outer;
+                    for (let y = 0; y < value; ++ y) {
+                        const drawY = intYZero + y;
+                        const yIndex = drawY >> 1;
+                        if (yIndex >= canvas.length) {
+                            break;
                         }
-                        canvas[yIndex][xIndex] |= full;
-                    }
-                    const bits = value % 2;
-                    let mask = 0b11 >> (2 - bits);
-                    if (mask) {
-                        if ((x & 1) === 0) {
-                            mask = mask << 2;
+                        if (yIndex >= 0) {
+                            const mask = (0b1 << (drawY & 1)) << xShift;
+                            canvas[yIndex][xIndex] |= mask;
                         }
-                        const yIndex = (intYZero + y) >> 1;
-                        if (yIndex >= height) {
-                            if (yIndex > 0) {
-                                canvas[yIndex - 1][xIndex] = 0b11111;
-                            }
-                            continue outer;
-                        }
-                        canvas[yIndex][xIndex] |= mask;
                     }
                 } else {
-                    let y = 0;
-                    for (; y - 2 >= value; y -= 2) {
-                        const yIndex = (intYZero + y - 2) >> 1;
-                        if (yIndex >= 0 && yIndex < height) {
-                            canvas[yIndex][xIndex] |= full;
-                        } else if (yIndex >= -1 && yIndex + 1 < canvas.length) {
-                            canvas[yIndex + 1][xIndex] = 0b11111;
+                    for (let y = -1; y >= value; -- y) {
+                        const drawY = intYZero + y;
+                        let yIndex = drawY >> 1;
+                        if (yIndex < 0) {
+                            break;
                         }
-                    }
-                    const bits = -value % 2;
-                    let mask = (0b11 << (2 - bits)) & 0b11;
-                    if (mask) {
-                        if ((x & 1) === 0) {
-                            mask = mask << 2;
+                        if (yIndex < canvas.length) {
+                            const mask = (0b1 << (drawY & 1)) << xShift;
+                            canvas[yIndex][xIndex] |= mask;
                         }
-                        const yIndex = (intYZero + y - 2) >> 1;
-                        if (yIndex < 0 || yIndex >= height) {
-                            if (yIndex >= -1 && yIndex + 1 < canvas.length) {
-                                canvas[yIndex + 1][xIndex] = 0b11111;
-                            }
-                            continue outer;
-                        }
-                        canvas[yIndex][xIndex] |= mask;
                     }
                 }
             }
         } else {
             let prevValue = intValues[0];
             for (let x = 0; x < intValues.length; ++ x) {
-                const value = intValues[x];
+                let value = intValues[x];
                 const xIndex = (x >> 1);
                 if (xIndex < 0) {
                     prevValue = value;
@@ -219,6 +188,10 @@ export default function unicodePlot(
                 }
 
                 const xShift = 2 - (x & 1) * 2;
+
+                // not sure if this is just treating a symptom
+                if (value > 0) -- value;
+
                 if (value === prevValue) {
                     const drawY = intYZero + value;
                     const yIndex = drawY >> 1;
