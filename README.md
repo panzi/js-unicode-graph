@@ -21,6 +21,8 @@ used font the empty spots might actually be just empty circles and thus still
 fill up the space that is supposed to be empty. Braille example characters:
 `⠅` `⠇` `⠍` `⠝` `⠕` `⠏` `⠟` `⠗` `⠎` `⠞`
 
+[Video Demo](https://www.youtube.com/watch?v=Cbuor9gwZxk)
+
 Example
 -------
 

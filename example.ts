@@ -34,13 +34,13 @@ function main() {
         [x => Math.pow(Math.sin(x), 2), [0, 1]],
         [x => Math.sin(x) - 2, [-3, 0]],
         [x => Math.sin(x) + 2, [0, 3]],
-        [x => Math.sin(x * 17) * 0.5 + Math.cos(x * 13) * 0.1 + Math.sin(x * Math.PI * 2) * 0.3 + Math.sin(x * x * 5) * 0.2, [-0.5, 0.5]],
+        [x => Math.sin(x * 17) * 0.5 + Math.cos(x * 13) * 0.1 + Math.sin(x * Math.PI * 2) * 0.3 + Math.sin(x * x * 5) * 0.2, [-1, 1]],
     ];
 
     let timer: NodeJS.Timeout|null = setInterval(() => {
         const now = Date.now();
         const values: [number, number][] = new Array((process.stdout.columns ?? 80) * 3);
-        const [f, yRange] = functs[((now / 10_000)|0) % functs.length];
+        const [f, yRange] = functs[((now / 5_000)|0) % functs.length];
         for (let index = 0; index < values.length; ++ index) {
             const x = ((now / 5_000 * TAU) + (TAU * (index / values.length)));
             values[index] = [x, f(x % TAU)];
