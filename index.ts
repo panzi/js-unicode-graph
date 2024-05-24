@@ -1,4 +1,4 @@
-export type Aggregate = 'average'|'sum';
+export type Aggregate = 'average'|'sum'|'min'|'max';
 export type Style = 'filled'|'line';
 
 export interface PlotOptions {
@@ -83,6 +83,52 @@ export default function unicodePlot(
                 }
                 if (y > yMaxValue) {
                     yMaxValue = y;
+                }
+            }
+            for (let index = 0; index < values.length; ++ index) {
+                if (values[index] === Infinity) {
+                    values[index] = 0;
+                }
+            }
+        } else if (aggregate === 'min') {
+            for (let index = 0; index < values.length; ++ index) {
+                values[index] = Infinity;
+            }
+            for (const [x, y] of data) {
+                const unicodeIndex = (unicodeWidth * (x - xMin) / xSpan)|0;
+                const oldY = values[unicodeIndex];
+                if (y < oldY) {
+                    values[unicodeIndex] = y;
+
+                    if (y < yMinValue) {
+                        yMinValue = y;
+                    }
+                    if (y > yMaxValue) {
+                        yMaxValue = y;
+                    }
+                }
+            }
+        } else if (aggregate === 'max') {
+            for (let index = 0; index < values.length; ++ index) {
+                values[index] = -Infinity;
+            }
+            for (const [x, y] of data) {
+                const unicodeIndex = (unicodeWidth * (x - xMin) / xSpan)|0;
+                const oldY = values[unicodeIndex];
+                if (y > oldY) {
+                    values[unicodeIndex] = y;
+
+                    if (y < yMinValue) {
+                        yMinValue = y;
+                    }
+                    if (y > yMaxValue) {
+                        yMaxValue = y;
+                    }
+                }
+            }
+            for (let index = 0; index < values.length; ++ index) {
+                if (values[index] === -Infinity) {
+                    values[index] = 0;
                 }
             }
         } else {
