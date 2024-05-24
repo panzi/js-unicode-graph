@@ -34,15 +34,17 @@ function main() {
             const x = ((now / 5_000 * TAU) + (TAU * (index / values.length)));
             values[index] = [x, Math.sin(x % TAU)];
         }
-        process.stdout.write('\x1B[1;1H\x1B[2J');
         const lines = unicodePlot(values, {
             yRange: [-1.5, 1.5],
             xLabel: x => x.toFixed(3),
             yLabel: y => y.toFixed(3).padStart(6),
             width:  (process.stdout.columns ?? 80) - 9,
             height: (process.stdout.rows    ?? 40) - 5,
+            aggregate: 'average',
+            style: now % 5_000 >= 2_500 ? 'line' : 'filled',
         });
         const box = makeBox(lines);
+        process.stdout.write('\x1B[1;1H\x1B[2J');
         console.log(box.join('\n'))
         console.log(message.padStart(message.length + ((box[0].length - message.length) >> 1)));
     }, 1000/30);

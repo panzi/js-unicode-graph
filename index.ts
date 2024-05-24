@@ -1,3 +1,6 @@
+export type Aggregate = 'average'|'sum';
+export type Style = 'filled'|'line';
+
 export interface PlotOptions {
     yLabel?: boolean|((y: number) => string);
     xLabel?: boolean|((x: number) => string);
@@ -7,7 +10,10 @@ export interface PlotOptions {
     yRange?: [min: number, max: number];
 
     /** default: 'average' */
-    aggregate?: 'average'|'sum';
+    aggregate?: Aggregate;
+
+    /** default: 'filled' */
+    style?: Style;
 }
 
 export default function unicodePlot(
@@ -30,6 +36,7 @@ export default function unicodePlot(
         }
     } else if (height > 0) {
         const aggregate = options?.aggregate ?? 'average';
+        const style = options?.style ?? 'filled';
         const xRange = options?.xRange;
 
         let xMin: number;
@@ -125,75 +132,127 @@ export default function unicodePlot(
             canvas.push(new Uint8Array(width));
         }
 
-        outer: for (let x = 0; x < intValues.length; ++ x) {
-            const value = intValues[x];
-            const full = (x & 1) ? 0b0011 : 0b1100;
-            const xIndex = (x >> 1);
-            if (xIndex < 0) {
-                continue;
-            }
-
-            if (xIndex >= width) {
-                break;
-            }
-
-            if (value === 0) {
-                // const mask = (x & 1) ? 0b0001 : 0b0100;
-                // const yIndex = intYZero >> 1;
-                // if (yIndex >= height) continue outer;
-                // canvas[yIndex][xIndex] |= mask;
-            } else if (value > 0) {
-                let y = 0;
-                for (; y + 2 <= value; y += 2) {
-                    const yIndex = (intYZero + y) >> 1;
-                    if (yIndex >= height) {
-                        if (yIndex > 0) {
-                            canvas[yIndex - 1][xIndex] = 0b11111;
-                        }
-                        continue outer;
-                    }
-                    canvas[yIndex][xIndex] |= full;
+        if (style === 'filled') {
+            outer: for (let x = 0; x < intValues.length; ++ x) {
+                const value = intValues[x];
+                const full = (x & 1) ? 0b0011 : 0b1100;
+                const xIndex = (x >> 1);
+                if (xIndex < 0) {
+                    continue;
                 }
-                const bits = value % 2;
-                let mask = 0b11 >> (2 - bits);
-                if (mask) {
-                    if ((x & 1) === 0) {
-                        mask = mask << 2;
-                    }
-                    const yIndex = (intYZero + y) >> 1;
-                    if (yIndex >= height) {
-                        if (yIndex > 0) {
-                            canvas[yIndex - 1][xIndex] = 0b11111;
-                        }
-                        continue outer;
-                    }
-                    canvas[yIndex][xIndex] |= mask;
+
+                if (xIndex >= width) {
+                    break;
                 }
-            } else {
-                let y = 0;
-                for (; y - 2 >= value; y -= 2) {
-                    const yIndex = (intYZero + y - 2) >> 1;
-                    if (yIndex >= 0 && yIndex < height) {
+
+                if (value === 0) {
+                    // const mask = (x & 1) ? 0b0001 : 0b0100;
+                    // const yIndex = intYZero >> 1;
+                    // if (yIndex >= height) continue outer;
+                    // canvas[yIndex][xIndex] |= mask;
+                } else if (value > 0) {
+                    let y = 0;
+                    for (; y + 2 <= value; y += 2) {
+                        const yIndex = (intYZero + y) >> 1;
+                        if (yIndex >= height) {
+                            if (yIndex > 0) {
+                                canvas[yIndex - 1][xIndex] = 0b11111;
+                            }
+                            continue outer;
+                        }
                         canvas[yIndex][xIndex] |= full;
-                    } else if (yIndex >= -1 && yIndex + 1 < canvas.length) {
-                        canvas[yIndex + 1][xIndex] = 0b11111;
                     }
-                }
-                const bits = -value % 2;
-                let mask = (0b11 << (2 - bits)) & 0b11;
-                if (mask) {
-                    if ((x & 1) === 0) {
-                        mask = mask << 2;
+                    const bits = value % 2;
+                    let mask = 0b11 >> (2 - bits);
+                    if (mask) {
+                        if ((x & 1) === 0) {
+                            mask = mask << 2;
+                        }
+                        const yIndex = (intYZero + y) >> 1;
+                        if (yIndex >= height) {
+                            if (yIndex > 0) {
+                                canvas[yIndex - 1][xIndex] = 0b11111;
+                            }
+                            continue outer;
+                        }
+                        canvas[yIndex][xIndex] |= mask;
                     }
-                    const yIndex = (intYZero + y - 2) >> 1;
-                    if (yIndex < 0 || yIndex >= height) {
-                        if (yIndex >= -1 && yIndex + 1 < canvas.length) {
+                } else {
+                    let y = 0;
+                    for (; y - 2 >= value; y -= 2) {
+                        const yIndex = (intYZero + y - 2) >> 1;
+                        if (yIndex >= 0 && yIndex < height) {
+                            canvas[yIndex][xIndex] |= full;
+                        } else if (yIndex >= -1 && yIndex + 1 < canvas.length) {
                             canvas[yIndex + 1][xIndex] = 0b11111;
                         }
-                        continue outer;
                     }
-                    canvas[yIndex][xIndex] |= mask;
+                    const bits = -value % 2;
+                    let mask = (0b11 << (2 - bits)) & 0b11;
+                    if (mask) {
+                        if ((x & 1) === 0) {
+                            mask = mask << 2;
+                        }
+                        const yIndex = (intYZero + y - 2) >> 1;
+                        if (yIndex < 0 || yIndex >= height) {
+                            if (yIndex >= -1 && yIndex + 1 < canvas.length) {
+                                canvas[yIndex + 1][xIndex] = 0b11111;
+                            }
+                            continue outer;
+                        }
+                        canvas[yIndex][xIndex] |= mask;
+                    }
                 }
+            }
+        } else {
+            let prevValue = intValues[0];
+            for (let x = 0; x < intValues.length; ++ x) {
+                const value = intValues[x];
+                const xIndex = (x >> 1);
+                if (xIndex < 0) {
+                    prevValue = value;
+                    continue;
+                }
+
+                if (xIndex >= width) {
+                    break;
+                }
+
+                const xShift = 2 - (x & 1) * 2;
+                if (value === prevValue) {
+                    const drawY = intYZero + value;
+                    const yIndex = drawY >> 1;
+                    if (yIndex < canvas.length && yIndex >= 0) {
+                        const mask = (0b1 << (drawY & 1)) << xShift;
+                        canvas[yIndex][xIndex] |= mask;
+                    }
+                } else if (value > prevValue) {
+                    for (let y = prevValue + 1; y <= value; ++ y) {
+                        const drawY = intYZero + y;
+                        const yIndex = drawY >> 1;
+                        if (yIndex >= canvas.length) {
+                            break;
+                        }
+                        if (yIndex >= 0) {
+                            const mask = (0b1 << (drawY & 1)) << xShift;
+                            canvas[yIndex][xIndex] |= mask;
+                        }
+                    }
+                } else {
+                    for (let y = prevValue - 1; y >= value; -- y) {
+                        const drawY = intYZero + y;
+                        let yIndex = drawY >> 1;
+                        if (yIndex < 0) {
+                            break;
+                        }
+                        if (yIndex < canvas.length) {
+                            const mask = (0b1 << (drawY & 1)) << xShift;
+                            canvas[yIndex][xIndex] |= mask;
+                        }
+                    }
+                }
+
+                prevValue = value;
             }
         }
 
